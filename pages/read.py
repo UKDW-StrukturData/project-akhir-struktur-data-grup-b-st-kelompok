@@ -1,7 +1,7 @@
 import streamlit as st
 from funcs import kitab, getChapter, getPassage
 
-st.title('')
+st.title('Real Bread: A Bible Study App')
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -11,9 +11,9 @@ with col2:
     chapter = st.number_input("Pasal:", min_value=1, max_value=max_chapter, step=1)
 with col3:
     ayatORpasal = st.selectbox('Satu Pasal / Ayat', ['Pasal', 'Ayat'])
-if ayatORpasal == 'Ayat':
-    with col4:
-        passage = st.multiselect('Ayat:', [x for x in range(1, kitab[book]+1)])
+with col4:
+    if ayatORpasal == 'Ayat':
+        passage = st.multiselect('Ayat:', [str(x) for x in range(1, kitab[book]+1)])
 
 try:
     if ayatORpasal == 'Pasal':

@@ -151,18 +151,28 @@ kitab = {
 def cleanText(data):
     hasil = []
 
-    for book_id, book_data in data.items():
-        chapters = book_data.get("data", {})
-        for chapter_num, verses in chapters.items():
-            for verse_num, verse_data in verses.items():
-                verse = verse_data.get("verse", "")
-                title = verse_data.get("title", "")
-                text = verse_data.get("text", "")
-                
-                if title:
-                    hasil.append(f"### {title}")
-                hasil.append(f"[{verse}] {text}")
+    if isinstance(data, list):
+        items = data
+    else:
+        items = [data]
+
+    for item in items:
+        if "res" in item:
+            item = item["res"]
+
+        for book_id, book_data in item.items():
+            chapters = book_data.get("data", {})
+            for chapter_num, verses in chapters.items():
+                for verse_num, verse_data in verses.items():
+                    verse = verse_data.get("verse", "")
+                    title = verse_data.get("title", "")
+                    text = verse_data.get("text", "")
+
+                    if title:
+                        hasil.append(f"### {title}")
+                    hasil.append(f"[{verse}] {text}")
     return hasil
+
 
 def getChapter(book, chapter):
     bookREQ = requests.get(f'https://api.ayt.co/v1/bible.php?book={book}&chapter={chapter}&source=realbread.streamlit.app')
@@ -174,8 +184,8 @@ def getChapter(book, chapter):
         for i in data: st.write(i)
 
 def getPassage(book, chapter, passage):
-    passage = passage.join(',')
-    bookREQ = requests.get(f'https://api.ayt.co/v1/bible.php?book={book}&chapter={chapter}&passage={passage}&source=realbread.streamlit.app')
+    passage = ','.join(passage)
+    bookREQ = requests.get(f'https://api.ayt.co/v1/passage.php?passage={book} {chapter}:{passage}&source=realbread.streamlit.app')
     if bookREQ.status_code != 200:
         st.error('Gagal ambil')
     else:
