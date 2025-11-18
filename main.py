@@ -5,6 +5,7 @@ if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 if st.session_state['logged_in'] == False:
     st.title('Real Bread: A Bible Study App')
+
     username = st.text_input('Username', placeholder='Masukkan Username')
     password = st.text_input('Password', placeholder='Masukkan Password', type='password')
 
