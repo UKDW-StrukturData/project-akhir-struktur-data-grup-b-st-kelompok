@@ -17,4 +17,5 @@ def login_page():
                 time.sleep(0.8)
 
             st.session_state['logged_in'] = True
+            st.session_state['username'] = username 
             st.rerun()
