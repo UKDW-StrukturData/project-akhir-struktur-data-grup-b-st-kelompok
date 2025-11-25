@@ -1,6 +1,7 @@
 import re
 import streamlit as st
 import requests
+import google.generativeai as genai
 
 # lang_map = {
 #     'English' : 'en',
@@ -147,19 +148,15 @@ kitab = {
     "Yudas": 1,
     "Wahyu": 22
 }
-
 def cleanText(data):
     hasil = []
-
     if isinstance(data, list):
         items = data
     else:
         items = [data]
-
     for item in items:
         if "res" in item:
             item = item["res"]
-
         for book_id, book_data in item.items():
             chapters = book_data.get("data", {})
             for chapter_num, verses in chapters.items():
@@ -167,28 +164,62 @@ def cleanText(data):
                     verse = verse_data.get("verse", "")
                     title = verse_data.get("title", "")
                     text = verse_data.get("text", "")
-
                     if title:
                         hasil.append(f"### {title}")
                     hasil.append(f"[{verse}] {text}")
     return hasil
 
-
 def getChapter(book, chapter):
-    bookREQ = requests.get(f'https://api.ayt.co/v1/bible.php?book={book}&chapter={chapter}&source=realbread.streamlit.app')
-    if bookREQ.status_code != 200:
-        st.error('Gagal ambil')
-    else:
+    try:
+        bookREQ = requests.get(f'https://api.ayt.co/v1/bible.php?book={book}&chapter={chapter}&source=realbread.streamlit.app')
+        if bookREQ.status_code != 200:
+            return []
         data = bookREQ.json()
-        data = cleanText(data)
-        for i in data: st.write(i)
+        return cleanText(data)
+    except:
+        return []
 
 def getPassage(book, chapter, passage):
-    passage = ','.join(passage)
-    bookREQ = requests.get(f'https://api.ayt.co/v1/passage.php?passage={book} {chapter}:{passage}&source=realbread.streamlit.app')
-    if bookREQ.status_code != 200:
-        st.error('Gagal ambil')
-    else:
+    try:
+        passage_str = ','.join(passage)
+        bookREQ = requests.get(f'https://api.ayt.co/v1/passage.php?passage={book} {chapter}:{passage_str}&source=realbread.streamlit.app')
+        if bookREQ.status_code != 200:
+            return []
         data = bookREQ.json()
-        data = cleanText(data)
-        for i in data: st.write(i)
+        return cleanText(data)
+    except:
+        return []
+
+def ask_gemini(prompt):
+    api_key = None
+    try:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    except:
+        pass
+    
+    if not api_key:
+        api_key = API_KEY_DARURAT
+
+    if "MASUKKAN" in api_key or not api_key:
+        return "Tolong masukkan API Key di funcs.py baris 6."
+
+    genai.configure(api_key=api_key)
+
+    models_to_try = [
+        'gemini-2.5-flash'
+    ]
+    
+    error_log = []
+
+    # 3. Looping nyobain satu-satu
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            return response.text 
+        except Exception as e:
+            error_log.append(f"{model_name}: Gagal")
+            continue
+
+    # Kalau sampai sini berarti SEMUA gagal
+    return f"Maaf, semua model AI gagal diakses. Coba buat API Key baru. Log: {', '.join(error_log)}"
