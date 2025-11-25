@@ -2,6 +2,9 @@ import streamlit as st
 import time
 from funcs import kitab, getChapter, getPassage, ask_gemini
 
+from login import login_page
+
+
 st.set_page_config(page_title="Real Bread", layout="wide")
 
 if 'logged_in' not in st.session_state:
@@ -9,18 +12,7 @@ if 'logged_in' not in st.session_state:
 if 'username' not in st.session_state:
     st.session_state['username'] = "User"
 
-def page_login():
-    st.title("Real Bread: A Bible Study App")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login", type="primary"):
-        if username and password:
-            with st.status("Masuk...", expanded=False) as s:
-                time.sleep(0.5)
-                s.update(label="Berhasil!", state="complete")
-            st.session_state['logged_in'] = True
-            st.session_state['username'] = username
-            st.rerun()
+
 
 def page_read():
     st.title('Baca & Ringkasan AI')
@@ -62,7 +54,6 @@ def page_read():
         
         st.write("---")
         
-        # --- RINGKASAN OTOMATIS MUNCUL DI SINI ---
         st.subheader("Ringkasan & Makna (AI)")
         
         prompt = f"""
@@ -93,20 +84,29 @@ def page_ai():
 def page_bm(): st.title("Bookmark")
 def page_sv(): st.title("Saved")
 
+def logout():
+    st.session_state['logged_in'] = False
+    st.session_state['username'] = ""
+    st.rerun()
+
 if not st.session_state['logged_in']:
-    pg = st.navigation([st.Page(page_login, title="Login")], position="hidden")
+    pg = st.navigation([st.Page(login_page, title="Login")], position="hidden")  # <-- pakai login_page dari login.py
     pg.run()
 else:
     st.sidebar.title("Real Bread")
+    st.sidebar.write(f"Halo, {st.session_state['username']}")
+    
     pg = st.navigation({
-        "Menu": [
+        "Menu Utama": [
             st.Page(page_read, title="Read Bible"),
             st.Page(page_ai, title="AI Assistant"),
             st.Page(page_bm, title="Bookmark"),
             st.Page(page_sv, title="Saved"),
         ]
     })
+    
     pg.run()
+
+    st.sidebar.divider()
     if st.sidebar.button("Logout"):
-        st.session_state['logged_in'] = False
-        st.rerun()
+        logout()
