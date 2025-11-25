@@ -2,19 +2,15 @@ import streamlit as st
 from login import login_page
 from funcs import kitab, getChapter, getPassage
 
-# Inisialisasi session login
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
-# Jika belum login → tampilkan halaman login
 if not st.session_state['logged_in']:
     login_page()
 
-# Jika sudah login → tampilkan halaman utama
 else:
     st.title('Real Bread: A Bible Study App')
 
-    # ====== INPUT PEMILIHAN ======
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -37,7 +33,6 @@ else:
         else:
             passage = None
 
-    # ====== TOMBOL TAMPILKAN ======
     if st.button("Tampilkan", key="show"):
         try:
             if ayatORpasal == 'Pasal':
@@ -47,7 +42,6 @@ else:
         except Exception as e:
             st.error(e)
 
-    # ====== TOMBOL LOGOUT ======
     st.write("---")
     if st.button("Logout", key="logout"):
         st.session_state['logged_in'] = False
