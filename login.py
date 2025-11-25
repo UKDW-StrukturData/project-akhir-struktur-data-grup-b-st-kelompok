@@ -1,8 +1,20 @@
 import streamlit as st
+import time
 
-st.title('Real Bread: A Bible Study App')
-st.text_input('Username', placeholder='masukkan username')
-st.text_input('Password', placeholder='masukkan password')
+def login_page():
+    st.title("Real Bread: A Bible Study App")
 
-if st.button('Login', type='primary'):
-    st.Page('read.py')
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username == "" or password == "":
+            st.error("Username atau password salah!")
+        else:
+            with st.status("Memverifikasi akun...", expanded=False) as s:
+                time.sleep(1)
+                s.update(label="Login berhasil!", state="complete")
+                time.sleep(0.8)
+
+            st.session_state['logged_in'] = True
+            st.rerun()
