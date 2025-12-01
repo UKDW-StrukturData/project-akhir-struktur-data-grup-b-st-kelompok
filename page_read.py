@@ -41,7 +41,7 @@ def page_read():
                 raw_verses = getChapter(book, chapter)
             else:
                 if passage:
-                    st.session_state['ref'] = f"{book} {chapter}: {', '.join(passage)}"
+                    st.session_state['ref'] = f"{book} {chapter}: {', '.join(passage)}" # udah jadi list karena clean text, terus jadi string
                     raw_verses = getPassage(book, chapter, passage)
                 else:
                     st.warning("Pilih ayat dulu.")

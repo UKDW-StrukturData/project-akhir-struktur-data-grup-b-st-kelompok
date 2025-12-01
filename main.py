@@ -24,8 +24,7 @@ if not st.session_state['logged_in']:
 else:
     with st.sidebar:
         st.title("Real Bread")
-        # Menggunakan versi HEAD yang ada bold-nya
-        st.write(f"Halo, **{st.session_state['username']}**")
+        st.write(f"Halo, **{st.session_state['username']}**") # ngasih nama
     
     halaman_baca = st.Page(page_read, title="Read Bible")
     halaman_ai = st.Page(page_ai, title="AI Assistant")
