@@ -1,25 +1,24 @@
 import streamlit as st
 from funcs import ask_gemini
 
-def page_ai():
+def page_ai(): 
     st.title("Chat Bebas")
     
-
-    if "chat" not in st.session_state: 
-        st.session_state.chat = []
+    if "chat" not in st.session_state: # Ngecek chat tu ada station state ato ga, streamlit soalnya reset tiap input, pokok biar ngechat sama 
+        st.session_state.chat = [] # akan buat list kosong, jamin data chat tetep ada di memori
     
-
-    for mulaichat in st.session_state.chat: 
-        avatar_path = mulaichat.get("avatar") 
-        
-        st.chat_message(mulaichat["role"], avatar=avatar_path).write(mulaichat["content"])
+    for pesan in st.session_state.chat: 
+        avatar_path = pesan.get("avatar") 
+        st.chat_message(pesan["role"], avatar=avatar_path).write(pesan["content"])
+    # pokokny looping diatas ini untuk biar user bisa lihat pesan sebelum nya kalo gd ya pesan yang ditanyain sebelumnya ilang
     
-    if userinput := st.chat_input("Tanya tentang Alkitab atau teologi..."):
-
-        user_message = {"role":"user", "avatar":"orang.jpg", "content":userinput}
-        st.session_state.chat.append(user_message)
+    userinput = st.chat_input("Tanya tentang Alkitab atau teologi...")
+    
+    if userinput :
+        user_message = {"role":"user", "avatar":"orang.jpg", "content":userinput} # ini pd usernya input , user bakal punya role, content pesan yang user kirim
+        st.session_state.chat.append(user_message) # user_massage ini nanti bakal ke simpen dgn append di list tadi
         
-        st.chat_message("user", avatar='orang.jpg').write(userinput)
+        st.chat_message("user", avatar='orang.jpg').write(userinput) # variabel ini yang ditampilkan di streamlitnya (UI)
         
         prompt_dgn_constraint = """Instruksi Utama:
 1. Jawablah pertanyaan HANYA jika berkaitan dengan: Alkitab, Teologi, Sejarah Gereja, Kehidupan Rohani, Konseling Kristen, atau Etika Kristen dan yang berkaitan dengan agama lain.
@@ -29,21 +28,22 @@ def page_ai():
 Riwayat percakapan sejauh ini:
 """
 
-        for message in st.session_state.chat[-10:]: # 
-            if message["role"] == "user":
+        for message in st.session_state.chat[-10:]: # looping 10 kali History chat terakhir nya maks (10) di prompt
+            if message["role"] == "user": 
                 role = "User"
             else:
                 role = "Assistant"
+                # di atas ini buat nyamain format aja dengan prompt
 
-            prompt_dgn_constraint += f"{role}: {message['content']}\n"
+            prompt_dgn_constraint += f"{role}: {message['content']}\n" # buat AI bisa menjawab berkaitan dengan pertanyaan sebelumnya
 
-        prompt_dgn_constraint += f"User: {userinput}\nAssistant:"
+        prompt_dgn_constraint += f"User: {userinput}\nAssistant:" # biar si Assistant / AI nya tau bisa jawabnya kapan 
 
 
-        with st.chat_message("assistant", avatar='logo.png'):
+        with st.chat_message("assistant", avatar='logo.png'): # buat bubble baru untuk AI nya
             with st.spinner("Loading, tunggu sebentar"):
                 jawaban = ask_gemini(prompt_dgn_constraint) 
-                st.write(jawaban)
-        
+                st.write(jawaban) # Nampilin Jawaban AInya 
+                
         assistant_message = {"role":"assistant", "avatar":"logo.png", "content":jawaban}
-        st.session_state.chat.append(assistant_message)
+        st.session_state.chat.append(assistant_message) 
