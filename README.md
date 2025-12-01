@@ -3,18 +3,19 @@ Real Bread: A Bible Study App
 Aplikasi studi Alkitab berbasis Streamlit yang memungkinkan pengguna membaca kitab dan pasal Alkitab, mencari ayat tertentu, serta mendapatkan penjelasan atau renungan melalui AI Gemini. Aplikasi ini dirancang untuk membantu pengguna memahami Firman Tuhan dengan cara yang lebih interaktif dan mudah diakses.
 
 Dibuat oleh:
-71241082 – Norbert Alexis Lynndoi
-71241087 – Darren Malvino Gunawan
-71241122 – Kevin Nathanael Hariyanto
+- 71241082 – Norbert Alexis Lynndoi
+- 71241087 – Darren Malvino Gunawan
+- 71241122 – Kevin Nathanael Hariyanto
 
 Fitur
 - Menampilkan daftar kitab dan pasal Alkitab lengkap.
-- Pencarian ayat berdasarkan referensi (book, chapter, verse).
-- Tanya AI Gemini untuk penjelasan ayat atau renungan.
+- Pencarian ayat berdasarkan input (book, chapter, verse).
+- Tanya AI untuk penjelasan ayat atau renungan.
+- Bookmark ayat
+- Autentikasi Login
 - Antarmuka interaktif menggunakan Streamlit.
 - Teks Alkitab diambil dari API AYT.
 
-Teknologi
 Aplikasi dikembangkan menggunakan Python dan Streamlit, dengan integrasi Google Gemini API sebagai AI dan API AYT sebagai sumber data Alkitab.
 https://api.ayt.co/v1
 

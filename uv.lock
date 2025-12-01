@@ -693,6 +693,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "google-generativeai" },
+    { name = "pandas" },
     { name = "requests" },
     { name = "streamlit" },
 ]
@@ -700,6 +701,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "google-generativeai", specifier = ">=0.8.5" },
+    { name = "pandas", specifier = ">=2.3.3" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "streamlit", specifier = ">=1.51.0" },
 ]

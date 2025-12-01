@@ -5,7 +5,11 @@ from page_ai import page_ai
 from page_bookmark import page_bookmark
 from page_saved import page_saved
 
-st.set_page_config(page_title="Real Bread", layout="wide")
+st.set_page_config(
+    page_title='Real Bread: A Bible Study App',
+    page_icon='icon.png',
+    layout='wide'
+)
 
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
@@ -24,18 +28,18 @@ if not st.session_state['logged_in']:
 else:
     with st.sidebar:
         st.title("Real Bread")
-        st.write(f"Halo, **{st.session_state['username']}**") # ngasih nama
+        st.write(f"Halo, **{st.session_state['username']}**!") # ngasih nama
     
-    halaman_baca = st.Page(page_read, title="Read Bible")
-    halaman_ai = st.Page(page_ai, title="AI Assistant")
-    halaman_bookmark = st.Page(page_bookmark, title="Bookmark")
-    halaman_saved = st.Page(page_saved, title="Saved") # Definisi halaman 
-    
-    st.session_state['objek_halaman_ai'] = halaman_ai # ai nya simpan ke session_state biar bisa dipanggil switch page
-
-    pg = st.navigation({
-        "Menu Utama": [halaman_baca, halaman_ai, halaman_bookmark, halaman_saved]
-    })
+        halaman_baca = st.Page(page_read, title="Read Bible")
+        halaman_ai = st.Page(page_ai, title="AI Assistant")
+        halaman_bookmark = st.Page(page_bookmark, title="Bookmark")
+        halaman_saved = st.Page(page_saved, title="Saved") # Definisi halaman 
+        
+        st.session_state['objek_halaman_ai'] = halaman_ai # ai nya simpan ke session_state biar bisa dipanggil switch page
+        
+        pg = st.navigation({
+            "Menu Utama": [halaman_baca, halaman_ai, halaman_bookmark, halaman_saved]
+        })
 
     pg.run()
 

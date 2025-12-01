@@ -18,10 +18,10 @@ def page_ai():
         judul_user = st.session_state.get('paket_judul', "Analisis Ayat") # ngambil isinya
         
         
-        st.session_state.chat.append({"role":"user", "avatar":"orang.jpg", "content": judul_user}) # untuk ngelanjutin tadi yang udah di get, content nya ngambil dari judul_user tadi
+        st.session_state.chat.append({"role":"user", "avatar":"user.png", "content": judul_user}) # untuk ngelanjutin tadi yang udah di get, content nya ngambil dari judul_user tadi
         
         
-        with st.chat_message("user", avatar='orang.jpg'):
+        with st.chat_message("user", avatar='user.png'):
             st.write(judul_user) # proses ke AI nya 
 
         with st.chat_message("assistant", avatar='logo.png'):
@@ -42,9 +42,9 @@ def page_ai():
     userinput = st.chat_input("Tanya tentang Alkitab atau teologi...")
     
     if userinput:
-        user_message = {"role":"user", "avatar":"orang.jpg", "content":userinput} # saat user input jadi punya role, dan content nya apa 
+        user_message = {"role":"user", "avatar":"user.png", "content":userinput} # saat user input jadi punya role, dan content nya apa 
         st.session_state.chat.append(user_message) # nanti bakal disimpan disini, user_massage masukin ke station state chat yang dimana tadi list kosong
-        st.chat_message("user", avatar='orang.jpg').write(userinput) # ini untuk nampilin UI nya aja di stremalit
+        st.chat_message("user", avatar='user.png').write(userinput) # ini untuk nampilin UI nya aja di stremalit
         
       
         prompt_dgn_constraint = """Instruksi Utama:

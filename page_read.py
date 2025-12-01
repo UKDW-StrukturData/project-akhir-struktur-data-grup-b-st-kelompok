@@ -27,11 +27,20 @@ def page_read():
                 passage_options = [str(x) for x in range(1, 177)] # ngambil ayat dari 1 sampe 176 (punya mazmur terbanyak)
                 passage = st.multiselect('Ayat:', passage_options, key="passage") 
         
-        tampilkan_ayat = st.button('Tampilkan Ayat', use_container_width=True)
+        tampilkan_ayat = st.button('Tampilkan Ayat', use_container_width=True, type='primary')
 
     st.write("---")
 
     if tampilkan_ayat:
+        
+        with st.expander(label='Pilih Ayat', expanded=False):
+            passage_options = [str(x) for x in range(1, 177)]
+            select = st.multiselect('Ayat:', passage_options, key="passage") 
+            if st.button(label='Bookmark', use_container_width=True, type='primary'):
+                pass
+
+        st.write("---")
+
         st.session_state['show_result'] = True
         raw_verses = []
         
@@ -64,14 +73,14 @@ def page_read():
         
         text_for_ai = "\n".join(st.session_state['verses']) #gabung semua item list jadi teks
         
-        with st.container(height=300, border=True):
+        with st.container(height=600, border=True):
             for baris_ayat in st.session_state['verses']:
                 st.write(baris_ayat)  # bakal nampilin ayat per ayat biar ke jarak
 
         col1, col2, col3, col4 = st.columns(4)
         
         with col1: 
-            st.button('Page Sebelum', use_container_width=True)
+            st.button('Sebelumnya', use_container_width=True, type='primary')
             
         with col2:
             ask_ai = st.button('Tanya AI (Disini)', use_container_width=True) # muncul dibawah
@@ -93,7 +102,7 @@ def page_read():
                 st.switch_page(st.session_state['objek_halaman_ai']) # Pindah Halaman ke ai tadi dah di buat di main
 
         with col4:
-            st.button('Page Sesudah', use_container_width=True)
+            st.button('Setelahnya', use_container_width=True, type='primary')
 
         st.write("---")
         
