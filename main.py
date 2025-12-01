@@ -12,17 +12,18 @@ if 'logged_in' not in st.session_state:
 if 'username' not in st.session_state:
     st.session_state['username'] = "User"
 
-
-
 def page_read():
     st.title('Baca & Ringkasan AI')
-    
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: book = st.selectbox("Kitab:", list(kitab.keys()), key="b")
-    with c2: max_ch = kitab[book]; chapter = st.number_input("Pasal:", 1, max_ch, 1, key="c")
-    with c3: mode = st.selectbox('Mode', ['Pasal', 'Ayat'], key="m")
-    with c4: 
-        passage = st.multiselect('Ayat:', [str(x) for x in range(1, kitab[book]+1)], key="p") if mode == 'Ayat' else None
+    with st.expander(label='Cari Pasal/Ayat', expanded=True):
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: book = st.selectbox("Kitab:", list(kitab.keys()), key="b")
+        with c2: max_ch = kitab[book]; chapter = st.number_input("Pasal:", 1, max_ch, 1, key="c")
+        with c3: mode = st.selectbox('Mode:', ['Pasal', 'Ayat'], key="m")
+        if mode == 'Ayat':
+            with c4: passage = st.multiselect('Ayat:', [str(x) for x in range(1, kitab[book]+1)], key="p") if mode == 'Ayat' else None
+        
+        if st.button('Tampilkan Ayat'):
+            pass
 
     st.write("---")
 
@@ -32,11 +33,11 @@ def page_read():
         raw_verses = []
         try:
             if mode == 'Pasal':
-                st.session_state['ref'] = f"{book} Pasal {chapter}"
+                st.session_state['ref'] = f"{book} {chapter}"
                 raw_verses = getChapter(book, chapter)
             else:
                 if passage:
-                    st.session_state['ref'] = f"{book} {chapter}:{','.join(passage)}"
+                    st.session_state['ref'] = f"{book} {chapter}: {', '.join(passage)}"
                     raw_verses = getPassage(book, chapter, passage)
                 else:
                     st.warning("Pilih ayat dulu.")
@@ -58,8 +59,10 @@ def page_read():
         
         prompt = f"""
         Kamu adalah asisten studi Alkitab. 
+        Jelaskan arti yang penting dari bahasa asli untuk setiap kata yang penting.
+        Berikan cross referencenya juga dan penjelasannya.
         Tolong buatkan ringkasan singkat (bullet points) tentang poin utama 
-        dan aplikasi praktis dari ayat-ayat ini:
+        dari ayat-ayat ini (Jangan berikan reply selain jawabannya saja):
         
         {text_for_ai}
         """

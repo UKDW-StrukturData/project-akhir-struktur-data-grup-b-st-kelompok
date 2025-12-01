@@ -196,9 +196,6 @@ def ask_gemini(prompt):
         api_key = st.secrets["GEMINI_API_KEY"]
     except:
         pass
-    
-    if not api_key:
-        api_key = API_KEY_DARURAT
 
     if "MASUKKAN" in api_key or not api_key:
         return "Tolong masukkan API Key di funcs.py baris 6."
