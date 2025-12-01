@@ -25,8 +25,7 @@ else:
     with st.sidebar:
         st.title("Real Bread")
         st.write(f"Halo, {st.session_state['username']}")
-        st.divider()
-
+       
     pg = st.navigation({
         "Menu Utama": [
             st.Page(page_read, title="Read Bible"),
