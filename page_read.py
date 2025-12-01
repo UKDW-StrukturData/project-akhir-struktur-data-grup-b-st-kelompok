@@ -9,15 +9,15 @@ def page_read():
     if 'ref' not in st.session_state:
         st.session_state['ref'] = ""
     if 'verses' not in st.session_state:
-        st.session_state['verses'] = [] #buat memori sementara
+        st.session_state['verses'] = [] #buat memori untuk hasil referensi ama ayat
     
     with st.expander(label='Cari Pasal/Ayat', expanded=True): 
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4 = st.columns(4) # Bagi layar jadi 4 kolom
         with c1: 
             book = st.selectbox("Kitab:", list(kitab.keys()), key="b")
         with c2: 
             max_ch = kitab[book]
-            chapter = st.number_input("Pasal:", 1, max_ch, 1, key="c")
+            chapter = st.number_input("Pasal:", 1, max_ch, 1, key="c") # Input angka Pasal
         with c3: 
             mode = st.selectbox('Mode:', ['Pasal', 'Ayat'], key="m")
         
@@ -35,7 +35,7 @@ def page_read():
         st.session_state['show_result'] = True
         raw_verses = []
         try:
-            if mode == 'Pasal': #ngambil data pasal
+            if mode == 'Pasal': #ngambil data pasal di funcs
                 st.session_state['ref'] = f"{book} {chapter}"
                 raw_verses = getChapter(book, chapter)
             else:
@@ -64,7 +64,6 @@ def page_read():
         text_for_ai = "\n".join(st.session_state['verses']) #dikirim ke ringkasan ai
         
         with st.container(height=300, border=True):
-  
             for baris_ayat in st.session_state['verses']:
                 st.write(baris_ayat) # di loop satu satu biar hasil nya berjarak
 
