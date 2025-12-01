@@ -46,5 +46,5 @@ Riwayat percakapan sejauh ini:
                 st.write(jawaban) # Nampilin Jawaban AInya 
                 
         assistant_message = {"role":"assistant", "avatar":"logo.png", "content":jawaban}
-        st.session_state.chat.append(assistant_message) # sama kayak user massage tadi
+        st.session_state.chat.append(assistant_message) # sama kayak user massage tadi
         

@@ -24,18 +24,19 @@ if not st.session_state['logged_in']:
 else:
     with st.sidebar:
         st.title("Real Bread")
-        st.write(f"Halo, {st.session_state['username']}")
-        st.divider()
+        st.write(f"Halo, **{st.session_state['username']}**")
+    
+    halaman_baca = st.Page(page_read, title="Read Bible")
+    halaman_ai = st.Page(page_ai, title="AI Assistant")
+    halaman_bookmark = st.Page(page_bookmark, title="Bookmark")
+    halaman_saved = st.Page(page_saved, title="Saved") # ngedefinisiin halaman
 
+    st.session_state['objek_halaman_ai'] = halaman_ai # ai nya simpan ke session_state biar bisa dipanggil switch page
+
+    # Masukkan variabel tadi ke navigasi
     pg = st.navigation({
-        "Menu Utama": [
-            st.Page(page_read, title="Read Bible"),
-            st.Page(page_ai, title="AI Assistant"),
-            st.Page(page_bookmark, title="Bookmark"),
-            st.Page(page_saved, title="Saved"),
-        ]
+        "Menu Utama": [halaman_baca, halaman_ai, halaman_bookmark, halaman_saved]
     })
-
 
     pg.run()
 
