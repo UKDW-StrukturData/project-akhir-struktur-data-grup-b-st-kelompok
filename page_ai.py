@@ -48,7 +48,7 @@ def page_ai():
         
       
         prompt_dgn_constraint = """Instruksi Utama:
-1. Jawablah pertanyaan HANYA jika berkaitan dengan: Alkitab, Teologi, Sejarah Gereja, Kehidupan Rohani.
+1. Jawablah pertanyaan HANYA jika berkaitan dengan: Alkitab, Teologi, Sejarah Gereja, Kehidupan Rohani dan bisa juga yang berhubungan dengan agama lain.
 2. Tolak topik lain dengan sopan.
 3. Jawablah dengan nada pastoral.
 
