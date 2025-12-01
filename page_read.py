@@ -9,9 +9,9 @@ def page_read():
     if 'ref' not in st.session_state:
         st.session_state['ref'] = ""
     if 'verses' not in st.session_state:
-        st.session_state['verses'] = []
+        st.session_state['verses'] = [] #buat memori sementara
     
-    with st.expander(label='Cari Pasal/Ayat', expanded=True):
+    with st.expander(label='Cari Pasal/Ayat', expanded=True): 
         c1, c2, c3, c4 = st.columns(4)
         with c1: 
             book = st.selectbox("Kitab:", list(kitab.keys()), key="b")
@@ -24,7 +24,7 @@ def page_read():
         passage = None
         if mode == 'Ayat':
             with c4: 
-                passage_options = [str(x) for x in range(1, 177)] 
+                passage_options = [str(x) for x in range(1, 177)] # ngambil ayat dari 1 sampe 176 (punya mazmur terbanyak)
                 passage = st.multiselect('Ayat:', passage_options, key="p") 
         
         tampilkan_ayat = st.button('Tampilkan Ayat', use_container_width=True)
@@ -35,7 +35,7 @@ def page_read():
         st.session_state['show_result'] = True
         raw_verses = []
         try:
-            if mode == 'Pasal':
+            if mode == 'Pasal': #ngambil data pasal
                 st.session_state['ref'] = f"{book} {chapter}"
                 raw_verses = getChapter(book, chapter)
             else:
@@ -45,8 +45,15 @@ def page_read():
                 else:
                     st.warning("Pilih ayat dulu.")
                     st.session_state['show_result'] = False
-            st.session_state['verses'] = raw_verses
-            st.session_state['ai_result'] = None
+
+            if st.session_state['show_result']:
+                if not raw_verses:  # kalo misal list kosong ya ga ketemu
+                    st.error(f"Maaf, Gagal mengambil data {st.session_state['ref']}. Kemungkinan server sedang gangguan.") 
+                    st.session_state['verses'] = [] 
+                else:               
+                    st.session_state['verses'] = raw_verses
+                    st.session_state['ai_result'] = None
+            
         except Exception as e:
             st.error(f"Error: {e}")
             st.session_state['show_result'] = False
@@ -54,25 +61,24 @@ def page_read():
     if st.session_state.get('show_result') and st.session_state.get('verses'):
         st.subheader(f"{st.session_state.get('ref')}")
         
-        text_for_ai = "\n".join(st.session_state['verses'])
+        text_for_ai = "\n".join(st.session_state['verses']) #dikirim ke ringkasan ai
         
         with st.container(height=300, border=True):
-            st.write(text_for_ai) 
+  
+            for baris_ayat in st.session_state['verses']:
+                st.write(baris_ayat) # di loop satu satu biar hasil nya berjarak
 
         col1, col2, col3 = st.columns(3)
         
         with col1: 
-
-            st.button('page sebelum',use_container_width=True)
+            st.button('page sebelum', use_container_width=True)
             
         with col2:
-            ask_ai = st.button('Tanya AI',use_container_width=True)
+            ask_ai = st.button('Tanya AI', use_container_width=True)
         
         with col3:
             st.button('page sesudah', use_container_width=True)
 
-
-        
         st.write("---")
         
         if ask_ai and st.session_state['verses']:
@@ -101,8 +107,3 @@ def page_read():
         if st.button('Sembunyikan Hasil AI'):
             st.session_state['ai_result'] = None
             st.rerun()
-
-    if st.session_state.get('show_result'):
-        c_prev, c_next = st.columns(2)
-        with c_prev: st.button('Pasal Sebelumnya', key="prev_ch2", use_container_width=True, disabled=True)
-        with c_next: st.button('Pasal Selanjutnya', key="next_ch2", use_container_width=True, disabled=True)

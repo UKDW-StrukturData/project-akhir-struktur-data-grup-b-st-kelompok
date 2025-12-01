@@ -9,10 +9,10 @@ def page_ai():
         st.session_state.chat = []
     
 
-    for mulaichat in st.session_state.chat: 
-        avatar_path = mulaichat.get("avatar") 
+    for pesan in st.session_state.chat: 
+        avatar_path = pesan.get("avatar") 
         
-        st.chat_message(mulaichat["role"], avatar=avatar_path).write(mulaichat["content"])
+        st.chat_message(pesan["role"], avatar=avatar_path).write(pesan["content"])
     
     if userinput := st.chat_input("Tanya tentang Alkitab atau teologi..."):
 
