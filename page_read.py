@@ -48,21 +48,21 @@ def page_read():
                     st.session_state['show_result'] = False
 
             if st.session_state['show_result']:
-                if not raw_verses:  # kalo misal list kosong ya ga ketemu
+                if not raw_verses:  # kalo misal list kosong ya ga ketemu/ api mai/ gagal ambil
                     st.error(f"Maaf, Gagal mengambil data {st.session_state['ref']}. Kemungkinan server sedang gangguan.") 
                     st.session_state['verses'] = [] 
                 else:               
-                    st.session_state['verses'] = raw_verses
-                    st.session_state['ai_result'] = None
+                    st.session_state['verses'] = raw_verses # kalo bisa simpen ke raw_verse
+                    st.session_state['ai_result'] = None #hasil ai di reset biar g nyampur
             
         except Exception as e:
             st.error(f"Error: {e}")
             st.session_state['show_result'] = False
 
-    if st.session_state.get('show_result') and st.session_state.get('verses'):
+    if st.session_state.get('show_result') and st.session_state.get('verses'): # kalo dah neken tombol tampilin ayat
         st.subheader(f"{st.session_state.get('ref')}")
         
-        text_for_ai = "\n".join(st.session_state['verses']) 
+        text_for_ai = "\n".join(st.session_state['verses']) #gabung semua item list jadi teks
         
         with st.container(height=300, border=True):
             for baris_ayat in st.session_state['verses']:
@@ -107,17 +107,17 @@ def page_read():
             Ayat yang Anda pilih:
             {text_for_ai}
             """
-            
+
             with st.spinner(f"AI sedang menganalisis {st.session_state['ref']}..."):
                 hasil_ai = ask_gemini(prompt)
                 st.session_state['ai_result'] = hasil_ai
-                st.session_state['ai_ref'] = st.session_state['ref']
-                st.rerun()
+                st.session_state['ai_ref'] = st.session_state['ref'] # mengisi AI_ref sama ayat yang sekarang bakal dikunci
+                st.rerun() 
 
-    if st.session_state.get('ai_result') and st.session_state.get('ai_ref') == st.session_state.get('ref'):
+    if st.session_state.get('ai_result') and st.session_state.get('ai_ref') == st.session_state.get('ref'): 
         st.subheader("Ringkasan & Makna (AI)")
         st.markdown(st.session_state['ai_result'])
         
         if st.button('Sembunyikan Hasil AI'):
             st.session_state['ai_result'] = None
-            st.rerun()
+            st.rerun() #buat nampilin hasil lokal
