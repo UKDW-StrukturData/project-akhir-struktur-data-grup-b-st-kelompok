@@ -32,7 +32,6 @@ else:
     halaman_bookmark = st.Page(page_bookmark, title="Bookmark")
     halaman_saved = st.Page(page_saved, title="Saved") # Definisi halaman 
     
-    
     st.session_state['objek_halaman_ai'] = halaman_ai # ai nya simpan ke session_state biar bisa dipanggil switch page
 
     pg = st.navigation({
