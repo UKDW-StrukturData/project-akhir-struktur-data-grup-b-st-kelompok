@@ -25,6 +25,7 @@ def page_read():
         if mode == 'Ayat':
             with c4: 
                 passage_options = [str(x) for x in range(1, 177)] # ngambil ayat dari 1 sampe 176 (punya mazmur terbanyak)
+                # Key pertama (Jangan diubah jika logika bergantung kesini)
                 passage = st.multiselect('Ayat:', passage_options, key="passage") 
         
         tampilkan_ayat = st.button('Tampilkan Ayat', use_container_width=True, type='primary')
@@ -35,7 +36,8 @@ def page_read():
         
         with st.expander(label='Pilih Ayat', expanded=False):
             passage_options = [str(x) for x in range(1, 177)]
-            select = st.multiselect('Ayat:', passage_options, key="passage") 
+            # PERBAIKAN DISINI: Ganti key="passage" menjadi unik, misal "passage_bookmark"
+            select = st.multiselect('Ayat:', passage_options, key="passage_bookmark") 
             if st.button(label='Bookmark', use_container_width=True, type='primary'):
                 pass
 
