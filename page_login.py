@@ -9,13 +9,13 @@ def login_page():
     data = conn.read(worksheet="users", ttl=0)
     df = pd.DataFrame(data)
 
-    st.title("Real Bread: A Bible Study App")
+    st.subheader("Login ke akun anda")
 
     with st.form(key='login_form'):
         username = st.text_input("Username", placeholder='Masukkan username')
         password = st.text_input("Password", placeholder='Masukkan password', type="password")
 
-        if st.form_submit_button('Login', type='primary'):
+        if st.form_submit_button('Login', type='primary', use_container_width=True):
             hashed_pw = hashlib.sha256()
             hashed_pw.update(password.encode('utf-8'))
             hashed_pw = hashed_pw.hexdigest()

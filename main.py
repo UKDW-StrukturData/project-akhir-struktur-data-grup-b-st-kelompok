@@ -4,6 +4,7 @@ from page_read import page_read
 from page_ai import page_ai
 from page_bookmark import page_bookmark
 from page_saved import page_saved
+from page_register import register_page
 
 st.set_page_config(
     page_title='Real Bread: A Bible Study App',
@@ -22,9 +23,29 @@ def logout():
     st.session_state.chat = [] 
     st.rerun()
 
+if 'auth_page' not in st.session_state:
+    st.session_state['auth_page'] = "login"
+
 if not st.session_state['logged_in']:
-    pg = st.navigation([st.Page(login_page, title="Login")], position="hidden")
-    pg.run()
+    st.title("Real Bread: A Bible Study App")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("Silakan login ke akun anda")
+        if st.button('Login', type='primary', use_container_width=True):
+            st.session_state['auth_page'] = "login"
+            st.rerun()
+
+    with col2:
+        st.write("Belum punya akun? Daftar sekarang")
+        if st.button('Sign up', type='primary', use_container_width=True):
+            st.session_state['auth_page'] = "register"
+            st.rerun()
+
+    if st.session_state['auth_page'] == "login":
+        login_page()
+    else:
+        register_page()
 else:
     with st.sidebar:
         st.title("Real Bread")
