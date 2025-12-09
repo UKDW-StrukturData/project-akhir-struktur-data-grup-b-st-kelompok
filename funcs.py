@@ -159,3 +159,125 @@ def ask_gemini(prompt):
 
     # Kalau sampai sini berarti SEMUA gagal
     return f"Maaf, semua model AI gagal diakses. Coba buat API Key baru. Log: {', '.join(error_log)}"
+
+# --- FUNGSI BANTUAN CACHE (TANPA CLASS) ---
+
+def get_neighbor_ref(book, chapter, direction):
+    """
+    Hitung referensi tetangga (Next/Prev).
+    direction: 1 (Next), -1 (Prev)
+    Returns: (new_book, new_chapter) or (None, None)
+    """
+    list_kitab = list(kitab.keys())
+    try:
+        curr_idx = list_kitab.index(book)
+        max_ch = kitab[book]
+    except ValueError:
+        return None, None 
+
+    new_book, new_ch = book, chapter
+
+    if direction == 1: # MAJU
+        if chapter < max_ch:
+            new_ch = chapter + 1
+        elif curr_idx < len(list_kitab) - 1:
+            new_book = list_kitab[curr_idx + 1]
+            new_ch = 1
+        else:
+            return None, None # Mentok Wahyu
+    else: # MUNDUR
+        if chapter > 1:
+            new_ch = chapter - 1
+        elif curr_idx > 0:
+            new_book = list_kitab[curr_idx - 1]
+            new_ch = kitab[new_book] # Ambil pasal terakhir
+        else:
+            return None, None # Mentok Kejadian
+
+    return new_book, new_ch
+
+def fetch_data_dict(book, chapter):
+    """Ambil data dan bungkus jadi Dictionary"""
+    verses = getChapter(book, chapter)
+    return {
+        "book": book,
+        "chapter": chapter,
+        "verses": verses,
+        "ref": f"{book} {chapter}"
+    }
+
+def init_cache(center_book, center_chapter):
+    """
+    Inisialisasi List Cache [Prev2, Prev1, CENTER, Next1, Next2]
+    """
+    # 1. Mulai dengan Center
+    cache_list = [None] * 5 # Slot kosong [0, 1, 2, 3, 4]
+    cache_list[2] = fetch_data_dict(center_book, center_chapter) # Isi Tengah
+
+    # 2. Isi Kiri (Mundur)
+    curr_b, curr_c = center_book, center_chapter
+    for i in range(1, -1, -1): # index 1 lalu 0
+        pb, pc = get_neighbor_ref(curr_b, curr_c, -1)
+        if pb:
+            cache_list[i] = fetch_data_dict(pb, pc)
+            curr_b, curr_c = pb, pc
+    
+    # 3. Isi Kanan (Maju)
+    curr_b, curr_c = center_book, center_chapter
+    for i in range(3, 5): # index 3 lalu 4
+        nb, nc = get_neighbor_ref(curr_b, curr_c, 1)
+        if nb:
+            cache_list[i] = fetch_data_dict(nb, nc)
+            curr_b, curr_c = nb, nc
+            
+    return cache_list
+
+def shift_cache(cache_list, direction):
+    """
+    Geser Window Cache.
+    Direction: 'next' (geser kiri, tambah kanan), 'prev' (geser kanan, tambah kiri)
+    """
+    # Ambil referensi ujung untuk fetching data baru
+    
+    if direction == 'next':
+        # Cek apakah current (tengah) punya next? (index 3)
+        if cache_list[3] is None:
+            st.toast("Sudah di akhir Alkitab")
+            return cache_list, False
+
+        # Ambil info node paling kanan (buntut) untuk cari next-nya lagi
+        last_item = cache_list[4] if cache_list[4] else cache_list[3] 
+        # Kalau list penuh [A,B,C,D,E], last=E. Kalau [A,B,C,D,None], last=D.
+        
+        new_data = None
+        if last_item:
+            nb, nc = get_neighbor_ref(last_item['book'], last_item['chapter'], 1)
+            if nb:
+                new_data = fetch_data_dict(nb, nc)
+        
+        # PROSES GESER: Hapus index 0 (paling kiri), Append new_data di kanan
+        cache_list.pop(0)
+        cache_list.append(new_data)
+        return cache_list, True
+
+    elif direction == 'prev':
+        # Cek apakah current (tengah) punya prev? (index 1)
+        if cache_list[1] is None:
+            st.toast("Sudah di awal Alkitab")
+            return cache_list, False
+
+        # Ambil info node paling kiri (kepala) untuk cari prev-nya lagi
+        first_item = cache_list[0] if cache_list[0] else cache_list[1]
+        
+        new_data = None
+        if first_item:
+            pb, pc = get_neighbor_ref(first_item['book'], first_item['chapter'], -1)
+            if pb:
+                new_data = fetch_data_dict(pb, pc)
+        
+        # PROSES GESER: Hapus index terakhir (kanan), Insert new_data di kiri (0)
+        cache_list.pop()
+        cache_list.insert(0, new_data)
+        return cache_list, True
+
+    return cache_list, False
