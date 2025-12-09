@@ -56,7 +56,6 @@ else:
         st.query_params["auth"] = "true"
         st.query_params["user"] = st.session_state['username'] # pas user dah login, sistem langsung nulis auth = true di url biar kalo refresh analogi satpam tadi menjaga agar tetap di page setelah login
 
-
     with st.sidebar:
         st.title("Real Bread")
         st.write(f"Halo, **{st.session_state['username']}**!") # ngasih nama

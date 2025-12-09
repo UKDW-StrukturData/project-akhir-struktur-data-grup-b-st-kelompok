@@ -1,6 +1,9 @@
 import streamlit as st
+import pandas as pd
+import time
 from funcs import kitab, getPassage, ask_gemini, getVerseCount
 from funcs import initCache, shiftCache  # versi linked list
+from streamlit_gsheets import GSheetsConnection
 
 
 def navCallback(direction):
@@ -112,6 +115,36 @@ def page_read():
             else:
                 # Mode pasal → biarkan logic sinkronisasi cache meng-handle
                 pass
+
+    st.write("---")
+
+    with st.expander(label='Pilih Ayat/Pasal', expanded=True):
+        pilih = st.multiselect('Pilih Ayat', passage_options)
+        if st.button('Bookmark', type='primary', use_container_width=True):
+            conn = st.connection("gsheets", type=GSheetsConnection)
+            data = conn.read(worksheet="bookmarks", ttl=0)
+            df = pd.DataFrame(data)
+            for verse in pilih:
+                content = getPassage(book, chapter, verse)
+                new_user = pd.DataFrame({
+                    'book': [book],
+                    'chapter': [chapter],
+                    'verse' : [verse],
+                    'content' : content,
+                    'username' : [st.session_state['username']]
+                })
+
+                updated_df = pd.concat([df, new_user], ignore_index=True)
+
+                try:
+                    conn.update(data=updated_df, worksheet="bookmarks")
+                except Exception as e:
+                    st.error(f"Gagal menulis ke Google Sheets: {e}")
+
+                with st.status("Bookmarking...", expanded=False) as s:
+                    time.sleep(1)
+                    s.update(label=f"Bookmarked {book} {chapter}: {verse}.", state="complete")
+                    time.sleep(1)
 
     st.write("---")
 
