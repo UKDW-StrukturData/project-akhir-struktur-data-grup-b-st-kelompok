@@ -49,13 +49,16 @@ def register_page():
             })
 
             updated_df = pd.concat([df, new_user], ignore_index=True)
-            conn.write(updated_df, worksheet="users")
+
+            try:
+                conn.update(data=updated_df, worksheet="users")
+            except Exception as e:
+                st.error(f"Gagal menulis ke Google Sheets: {e}")
 
             with st.status("Mendaftarkan akun...", expanded=False) as s:
                 time.sleep(1)
                 s.update(label="Pendaftaran berhasil! Silakan login ke akun anda.", state="complete")
                 time.sleep(0.8)
-
-            st.session_state['logged_in'] = True
-            st.session_state['username'] = username
+            
+            st.session_state['auth_page'] = "login"
             st.rerun()
