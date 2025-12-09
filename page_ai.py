@@ -66,7 +66,6 @@ Riwayat percakapan:
 
         prompt_dgn_constraint += f"User: {userinput}\nAssistant:" # biar si Assistant / AI nya tau bisa jawabnya kapan 
 
-
         with st.chat_message("assistant", avatar='logo.png'): # buat bubble baru untuk AI nya
             with st.spinner("Loading, tunggu sebentar"):
                 jawaban = ask_gemini(prompt_dgn_constraint) 

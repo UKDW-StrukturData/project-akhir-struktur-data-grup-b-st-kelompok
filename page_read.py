@@ -1,5 +1,5 @@
 import streamlit as st
-from funcs import kitab, getChapter, getPassage, ask_gemini
+from funcs import kitab, getChapter, getPassage, getVerseCount, ask_gemini
 
 def page_read():
     st.title('Baca Alkitab & Analisis AI')
@@ -24,8 +24,7 @@ def page_read():
         passage = None
         if mode == 'Ayat':
             with c4: 
-                passage_options = [str(x) for x in range(1, 177)] # ngambil ayat dari 1 sampe 176 (punya mazmur terbanyak)
-                # Key pertama (Jangan diubah jika logika bergantung kesini)
+                passage_options = [str(x) for x in range(1, getVerseCount(book, chapter)+1)]
                 passage = st.multiselect('Ayat:', passage_options, key="passage") 
         
         tampilkan_ayat = st.button('Tampilkan Ayat', use_container_width=True, type='primary')
