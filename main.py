@@ -11,6 +11,10 @@ st.set_page_config(
     page_icon='icon.png',
     layout='wide'
 )
+if "auth" in st.query_params and st.query_params["auth"] == "true":
+    st.session_state['logged_in'] = True
+    if "user" in st.query_params:
+        st.session_state['username'] = st.query_params["user"] # Ngecek di link / url nya kalau auth nya true ya geprlu login lagi jadi ini kayak satpam yang mengecek stempel ke orang yang mau login 
 
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
@@ -21,6 +25,7 @@ def logout():
     st.session_state['logged_in'] = False
     st.session_state['username'] = ""
     st.session_state.chat = [] 
+    st.query_params.clear() # untuk ngapus auth = true dan mengubah status jadi false
     st.rerun()
 
 if 'auth_page' not in st.session_state:
@@ -47,6 +52,11 @@ if not st.session_state['logged_in']:
     else:
         register_page()
 else:
+    if "auth" not in st.query_params:
+        st.query_params["auth"] = "true"
+        st.query_params["user"] = st.session_state['username'] # pas user dah login, sistem langsung nulis auth = true di url biar kalo refresh analogi satpam tadi menjaga agar tetap di page setelah login
+
+
     with st.sidebar:
         st.title("Real Bread")
         st.write(f"Halo, **{st.session_state['username']}**!") # ngasih nama
