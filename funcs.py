@@ -1,8 +1,13 @@
+# funcs.py
 import streamlit as st
 import requests
 import google.generativeai as genai
 from bs4 import BeautifulSoup
+from functools import lru_cache
 
+# -----------------------
+# LIST KITAB & CHAPTERS
+# -----------------------
 kitab = {
     "Kejadian": 50,
     "Keluaran": 40,
@@ -72,18 +77,24 @@ kitab = {
     "Wahyu": 22
 }
 
+# -----------------------
+# UTIL: HTML CLEANER
+# -----------------------
 def clean_text_html(text):
     """Bersihkan tag HTML dari string."""
-    soup = BeautifulSoup(text, "html.parser")
+    soup = BeautifulSoup(text or "", "html.parser")
     return soup.get_text(separator="\n")
 
 def cleanText(data):
+    """Transform JSON api -> list of lines (judul dan ayat)."""
     hasil = []
     if isinstance(data, list):
         items = data
     else:
         items = [data]
     for item in items:
+        if not item:
+            continue
         if "res" in item:
             item = item["res"]
         for book_id, book_data in item.items():
@@ -98,186 +109,251 @@ def cleanText(data):
                     hasil.append(clean_text_html(f"[{verse}] {text}"))
     return hasil
 
+# -----------------------
+# API CALLS (cached)
+# -----------------------
+API_BASE = "https://api.ayt.co/v1"
+
+@lru_cache(maxsize=512)
 def getChapter(book, chapter):
+    """
+    Ambil full chapter dari API.
+    Cached (LRU) sehingga pemanggilan berulang O(1) amortized.
+    """
     try:
-        bookREQ = requests.get(f'https://api.ayt.co/v1/bible.php?book={book}&chapter={chapter}&source=realbread.streamlit.app')
-        if bookREQ.status_code != 200:
+        url = f"{API_BASE}/bible.php?book={requests.utils.quote(book)}&chapter={chapter}&source=realbread.streamlit.app"
+        res = requests.get(url, timeout=8)
+        if res.status_code != 200:
             return []
-        data = bookREQ.json()
+        data = res.json()
         return cleanText(data)
-    except:
+    except Exception:
         return []
 
 def getPassage(book, chapter, passage):
+    """
+    Jika passage is None -> ambil full pasal via getChapter (cached).
+    Jika passage is list -> ambil ayat tertentu via endpoint passage.php.
+    """
     try:
-        passage_str = ','.join(passage)
-        bookREQ = requests.get(f'https://api.ayt.co/v1/passage.php?passage={book} {chapter}:{passage_str}&source=realbread.streamlit.app')
-        if bookREQ.status_code != 200:
+        if passage is None or passage == []:
+            return getChapter(book, chapter)
+        # passage is list of verse numbers or strings
+        passage_str = ",".join([str(x) for x in passage])
+        url = f"{API_BASE}/passage.php?passage={requests.utils.quote(f'{book} {chapter}:{passage_str}')}&source=realbread.streamlit.app"
+        res = requests.get(url, timeout=8)
+        if res.status_code != 200:
             return []
-        data = bookREQ.json()
+        data = res.json()
         return cleanText(data)
-    except:
+    except Exception:
         return []
-    
+
 def getVerseCount(book, chapter):
-    verses = getChapter(book, chapter)  # ambil data pasal lengkap
+    verses = getChapter(book, chapter)
     count = 0
     for line in verses:
-        # abaikan baris yang diawali '###' karena itu judul, bukan ayat
         if not line.strip().startswith("###"):
             count += 1
     return count
 
-
+# -----------------------
+# ASK GEMINI (AI)
+# -----------------------
 def ask_gemini(prompt):
     api_key = None
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
-    except:
-        pass
+    except Exception:
+        api_key = None
 
-    if "MASUKKAN" in api_key or not api_key:
-        return "Tolong masukkan API Key di funcs.py baris 6."
+    if not api_key or "MASUKKAN" in str(api_key):
+        return "Tolong masukkan API Key di secret GEMINI_API_KEY."
 
     genai.configure(api_key=api_key)
 
     models_to_try = [
-        'gemini-2.5-flash'
+        "gemini-2.5-flash"
     ]
-    
-    error_log = []
 
-    # 3. Looping nyobain satu-satu
+    error_log = []
     for model_name in models_to_try:
         try:
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
-            return response.text 
+            return response.text
         except Exception as e:
-            error_log.append(f"{model_name}: Gagal")
+            error_log.append(f"{model_name}: {e}")
             continue
 
-    # Kalau sampai sini berarti SEMUA gagal
-    return f"Maaf, semua model AI gagal diakses. Coba buat API Key baru. Log: {', '.join(error_log)}"
+    return f"Maaf, semua model AI gagal diakses. Log: {', '.join(error_log)}"
 
-# --- FUNGSI BANTUAN CACHE (TANPA CLASS) ---
-
-def get_neighbor_ref(book, chapter, direction):
+# ============================
+#  GET NEIGHBOR (O(1), safe)
+# ============================
+def getNeighborRef(book, chapter, offset):
     """
-    Hitung referensi tetangga (Next/Prev).
-    direction: 1 (Next), -1 (Prev)
-    Returns: (new_book, new_chapter) or (None, None)
+    Mengembalikan (book, chapter) baru berdasarkan offset (bisa lebih dari 1).
+    Jika melewati batas akhir/awal, kembalikan ujung yang valid.
     """
-    list_kitab = list(kitab.keys())
+    books = list(kitab.keys())
     try:
-        curr_idx = list_kitab.index(book)
-        max_ch = kitab[book]
+        idx = books.index(book)
     except ValueError:
-        return None, None 
+        # fallback kalau book tidak valid
+        return book, chapter
 
-    new_book, new_ch = book, chapter
+    new_ch = chapter + offset
+    new_book = book
 
-    if direction == 1: # MAJU
-        if chapter < max_ch:
-            new_ch = chapter + 1
-        elif curr_idx < len(list_kitab) - 1:
-            new_book = list_kitab[curr_idx + 1]
-            new_ch = 1
-        else:
-            return None, None # Mentok Wahyu
-    else: # MUNDUR
-        if chapter > 1:
-            new_ch = chapter - 1
-        elif curr_idx > 0:
-            new_book = list_kitab[curr_idx - 1]
-            new_ch = kitab[new_book] # Ambil pasal terakhir
-        else:
-            return None, None # Mentok Kejadian
+    # quick path: still inside same book
+    if 1 <= new_ch <= kitab[book]:
+        return new_book, new_ch
 
-    return new_book, new_ch
+    if offset > 0:
+        # move forward across books
+        while True:
+            # remaining chapters in current book
+            remaining = kitab[new_book] - chapter
+            if new_ch <= kitab[new_book]:
+                return new_book, new_ch
+            # compute across books by moving index forward
+            idx += 1
+            if idx >= len(books):
+                # at very end: return last book last chapter
+                last_book = books[-1]
+                return last_book, kitab[last_book]
+            # subtract chapters of current book and continue
+            new_ch -= kitab[new_book]
+            new_book = books[idx]
+            # loop until new_ch fits into new_book
 
-def fetch_data_dict(book, chapter):
-    """Ambil data dan bungkus jadi Dictionary"""
+    if offset < 0:
+        # move backward across books
+        while True:
+            if new_ch >= 1:
+                return new_book, new_ch
+            idx -= 1
+            if idx < 0:
+                # at very beginning
+                first_book = books[0]
+                return first_book, 1
+            new_book = books[idx]
+            new_ch += kitab[new_book]
+
+    return book, chapter
+
+# =======================
+#  LINKED LIST CACHE
+# =======================
+class CacheNode:
+    def __init__(self, book, chapter, verses, ref):
+        self.book = book
+        self.chapter = chapter
+        self.verses = verses
+        self.ref = ref
+        self.prev = None
+        self.next = None
+
+def createNode(book, chapter):
+    """Buat node untuk full chapter (pakai getChapter yang cached)."""
     verses = getChapter(book, chapter)
-    return {
-        "book": book,
-        "chapter": chapter,
-        "verses": verses,
-        "ref": f"{book} {chapter}"
-    }
+    ref = f"{book} {chapter}"
+    return CacheNode(book, chapter, verses, ref)
 
-def init_cache(center_book, center_chapter):
+def safeCreateNode(ref_tuple):
+    """Helper: jika ref_tuple None atau invalid -> return None"""
+    if not ref_tuple:
+        return None
+    b, c = ref_tuple
+    if b is None or c is None:
+        return None
+    return createNode(b, c)
+
+def initCache(book, chapter):
     """
-    Inisialisasi List Cache [Prev2, Prev1, CENTER, Next1, Next2]
+    Inisialisasi window 5-node:
+    prev2 <-> prev1 <-> curr <-> next1 <-> next2
+    Node yang tidak ada (edge) diset None.
+    Return pointer ke node current (middle).
     """
-    # 1. Mulai dengan Center
-    cache_list = [None] * 5 # Slot kosong [0, 1, 2, 3, 4]
-    cache_list[2] = fetch_data_dict(center_book, center_chapter) # Isi Tengah
+    # middle
+    curr = createNode(book, chapter)
 
-    # 2. Isi Kiri (Mundur)
-    curr_b, curr_c = center_book, center_chapter
-    for i in range(1, -1, -1): # index 1 lalu 0
-        pb, pc = get_neighbor_ref(curr_b, curr_c, -1)
-        if pb:
-            cache_list[i] = fetch_data_dict(pb, pc)
-            curr_b, curr_c = pb, pc
-    
-    # 3. Isi Kanan (Maju)
-    curr_b, curr_c = center_book, center_chapter
-    for i in range(3, 5): # index 3 lalu 4
-        nb, nc = get_neighbor_ref(curr_b, curr_c, 1)
-        if nb:
-            cache_list[i] = fetch_data_dict(nb, nc)
-            curr_b, curr_c = nb, nc
-            
-    return cache_list
+    # prev1, prev2
+    p1_ref = getNeighborRef(book, chapter, -1)
+    p2_ref = getNeighborRef(book, chapter, -2)
+    prev1 = safeCreateNode(p1_ref)
+    prev2 = safeCreateNode(p2_ref)
 
-def shift_cache(cache_list, direction):
+    # next1, next2
+    n1_ref = getNeighborRef(book, chapter, 1)
+    n2_ref = getNeighborRef(book, chapter, 2)
+    next1 = safeCreateNode(n1_ref)
+    next2 = safeCreateNode(n2_ref)
+
+    # link them carefully (check for None)
+    if prev2 and prev1:
+        prev2.next = prev1
+        prev1.prev = prev2
+
+    if prev1:
+        prev1.next = curr
+        curr.prev = prev1
+
+    if next1:
+        curr.next = next1
+        next1.prev = curr
+
+    if next1 and next2:
+        next1.next = next2
+        next2.prev = next1
+
+    return curr
+
+def shiftCache(currentNode, direction):
     """
-    Geser Window Cache.
-    Direction: 'next' (geser kiri, tambah kanan), 'prev' (geser kanan, tambah kiri)
+    Geser window 1 langkah.
+    direction: "next" atau "prev"
+    Return: (newCurrentNode, success)
     """
-    # Ambil referensi ujung untuk fetching data baru
-    
-    if direction == 'next':
-        # Cek apakah current (tengah) punya next? (index 3)
-        if cache_list[3] is None:
-            st.toast("Sudah di akhir Alkitab")
-            return cache_list, False
+    if not currentNode:
+        return None, False
 
-        # Ambil info node paling kanan (buntut) untuk cari next-nya lagi
-        last_item = cache_list[4] if cache_list[4] else cache_list[3] 
-        # Kalau list penuh [A,B,C,D,E], last=E. Kalau [A,B,C,D,None], last=D.
-        
-        new_data = None
-        if last_item:
-            nb, nc = get_neighbor_ref(last_item['book'], last_item['chapter'], 1)
-            if nb:
-                new_data = fetch_data_dict(nb, nc)
-        
-        # PROSES GESER: Hapus index 0 (paling kiri), Append new_data di kanan
-        cache_list.pop(0)
-        cache_list.append(new_data)
-        return cache_list, True
+    if direction == "next":
+        # can't move if there's no next (we're at very end)
+        if not currentNode.next:
+            return currentNode, False
 
-    elif direction == 'prev':
-        # Cek apakah current (tengah) punya prev? (index 1)
-        if cache_list[1] is None:
-            st.toast("Sudah di awal Alkitab")
-            return cache_list, False
+        newCurr = currentNode.next
 
-        # Ambil info node paling kiri (kepala) untuk cari prev-nya lagi
-        first_item = cache_list[0] if cache_list[0] else cache_list[1]
-        
-        new_data = None
-        if first_item:
-            pb, pc = get_neighbor_ref(first_item['book'], first_item['chapter'], -1)
-            if pb:
-                new_data = fetch_data_dict(pb, pc)
-        
-        # PROSES GESER: Hapus index terakhir (kanan), Insert new_data di kiri (0)
-        cache_list.pop()
-        cache_list.insert(0, new_data)
-        return cache_list, True
+        # ensure right side has two nodes (newCurr.next and newCurr.next.next)
+        if not newCurr.next:
+            # create one to the right if possible
+            nb2 = getNeighborRef(newCurr.book, newCurr.chapter, 1)
+            right = safeCreateNode(nb2)
+            if right:
+                newCurr.next = right
+                right.prev = newCurr
 
-    return cache_list, False
+        # Optionally we can drop far-left node to keep memory small:
+        # find leftmost from newCurr and prune if >3 nodes on left side.
+        # (Not strictly necessary; python GC handles unreferenced nodes.)
+        return newCurr, True
+
+    elif direction == "prev":
+        if not currentNode.prev:
+            return currentNode, False
+
+        newCurr = currentNode.prev
+
+        if not newCurr.prev:
+            pb2 = getNeighborRef(newCurr.book, newCurr.chapter, -1)
+            left = safeCreateNode(pb2)
+            if left:
+                newCurr.prev = left
+                left.next = newCurr
+
+        return newCurr, True
+
+    return currentNode, False
