@@ -4,9 +4,13 @@ import hashlib
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
-def register_page():
+@st.cache_data(ttl=0, show_spinner=False)
+def get_users_data():
     conn = st.connection("gsheets", type=GSheetsConnection)
-    data = conn.read(worksheet="users", ttl=0)
+    return conn.read(worksheet="users")
+
+def register_page():
+    data = get_users_data()
     df = pd.DataFrame(data)
 
     # Pastikan kolom ada
@@ -51,7 +55,11 @@ def register_page():
             updated_df = pd.concat([df, new_user], ignore_index=True)
 
             try:
-                conn.update(data=updated_df, worksheet="users")
+                conn = st.connection("gsheets", type=GSheetsConnection)
+                with st.spinner("Sedang menyimpan data..."): 
+                    conn.update(data=updated_df, worksheet="users")
+                st.cache_data.clear()
+
             except Exception as e:
                 st.error(f"Gagal menulis ke Google Sheets: {e}")
 

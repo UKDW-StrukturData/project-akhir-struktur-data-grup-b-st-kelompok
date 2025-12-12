@@ -4,9 +4,14 @@ import hashlib
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
-def login_page():
+@st.cache_data(ttl=0, show_spinner=False)
+
+def load_data_users():
     conn = st.connection("gsheets", type=GSheetsConnection)
-    data = conn.read(worksheet="users", ttl=0)
+    return conn.read(worksheet="users")
+
+def login_page():
+    data = load_data_users()
     df = pd.DataFrame(data)
 
     st.subheader("Login ke akun anda")
