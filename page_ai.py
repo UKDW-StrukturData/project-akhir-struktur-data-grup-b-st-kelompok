@@ -13,28 +13,27 @@ def page_ai():
         prompt_kiriman = st.session_state.get('paket_prompt')
         judul_user = st.session_state.get('paket_judul', "Analisis Ayat")
         
-        # Kita pakai spinner, TAPI JANGAN pakai st.chat_message di sini.
-        # Cukup spinner saja biar user tau sedang loading.
+        # spinner biar user tau sedang loading.
         with st.spinner(f"Sedang menganalisis topik: {judul_user}..."):
             jawaban = ask_gemini(prompt_kiriman)
         
-        # 1. Simpan Pancingan User ke History
+        
         st.session_state.chat.append({
             "role": "user", 
             "avatar": "user.png", 
             "content": judul_user
-        })
+        }) # menyimpan pesan ke riwayat chat
         
-        # 2. Simpan Jawaban AI ke History
+       
         st.session_state.chat.append({
             "role": "assistant", 
             "avatar": "logo.png", 
             "content": jawaban
-        })
+        }) # nyimpen jawaban AI ke history
         
-        # 3. Bersihkan Status
+    
         st.session_state['pindah_dari_read'] = False 
-        st.session_state['paket_prompt'] = None 
+        st.session_state['paket_prompt'] = None # bersihin status 
         
         
         # Ini refresh layar, sehingga kode if ini dilewati,
