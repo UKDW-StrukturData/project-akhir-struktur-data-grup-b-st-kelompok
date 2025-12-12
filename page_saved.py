@@ -1,5 +1,10 @@
 from funcs import st, pd, GSheetsConnection
 
+@st.cache_data(ttl=0, show_spinner=False)
+def load_saved_data():
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    return conn.read(worksheet="saved")
+
 def page_saved():
     st.title("Saved Notes")
     st.write("Catatan studi dan riwayat chat Anda.")
@@ -7,7 +12,7 @@ def page_saved():
     conn = st.connection("gsheets", type=GSheetsConnection)
 
     try:
-        data = conn.read(worksheet="saved", ttl=0) # Update sheet name
+        data = load_saved_data()# Update sheet name
         df = pd.DataFrame(data)
     except Exception:
         st.info("Belum ada catatan (Worksheet 'saved' tidak ditemukan).")
@@ -37,8 +42,11 @@ def page_saved():
                     if st.button("🗑️", key=f"del_note_{index}"):
                         df_updated = df.drop(index)
                         try:
-                            # HAPUS DARI 'saved'
-                            conn.update(data=df_updated, worksheet="saved")
+                            conn_update = st.connection("gsheets", type=GSheetsConnection)
+                            
+                            with st.spinner("Menghapus catatan..."):
+                                conn_update.update(data=df_updated, worksheet="saved")
+                            st.cache_data.clear() 
                             st.rerun()
                         except Exception as e:
                             st.error(f"Gagal hapus: {e}")

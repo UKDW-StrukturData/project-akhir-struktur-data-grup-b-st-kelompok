@@ -1,12 +1,15 @@
 from funcs import st, pd, GSheetsConnection, plt
 
+@st.cache_data(ttl=0, show_spinner=False)
+def load_bookmark_data():
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    return conn.read(worksheet="bookmarks")
+
 def page_bookmark():
     st.title("Bookmark")
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    
-    # Baca data terbaru tanpa cache (ttl=0)
+   
     try:
-        data = conn.read(worksheet="bookmarks", ttl=0)
+        data = load_bookmark_data()
         df = pd.DataFrame(data)
     except Exception:
         st.error("Gagal memuat data bookmark. Pastikan sheet 'bookmarks' ada.")
@@ -57,7 +60,13 @@ def page_bookmark():
                         # Hapus dari dataframe asli berdasarkan index
                         df_updated = df.drop(index)
                         try:
-                            conn.update(data=df_updated, worksheet="bookmarks")
+                            conn_update = st.connection("gsheets", type=GSheetsConnection)
+                     # Bungkus update dengan spinner kustom biar tulisan ijo ketutup
+                            with st.spinner("Menghapus bookmark..."):
+                                conn_update.update(data=df_updated, worksheet="bookmarks")
+                            
+                            # Clear cache supaya data lama hilang
+                            st.cache_data.clear()
                             st.rerun()
                         except Exception as e:
                             st.error(f"Gagal menghapus: {e}")

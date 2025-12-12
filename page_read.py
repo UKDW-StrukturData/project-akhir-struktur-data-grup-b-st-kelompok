@@ -22,6 +22,12 @@ def navCallback(direction):
         st.session_state["show_result"] = True 
         st.session_state["ai_result"] = None
 
+# --- [LOGIC BARU: FUNGSI CACHE] ---
+@st.cache_data(ttl=60,show_spinner = False) 
+def get_cached_bookmarks():
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    return conn.read(worksheet="bookmarks", show_spinner=False)
+
 def page_read():
     st.title("Baca Alkitab & Analisis AI")
 
@@ -103,40 +109,64 @@ def page_read():
     st.write("---")
 
     # ==========================
-    # FITUR BOOKMARK
+    # FITUR BOOKMARK (UPDATED)
     # ==========================
     if st.session_state.get("show_result"):
         with st.expander(label='Pilih Ayat untuk Bookmark', expanded=False):
             pilih = st.multiselect('Pilih Ayat', passage_options)
-            if st.button('Simpan Bookmark', type='secondary', use_container_width=True):
-                conn = st.connection("gsheets", type=GSheetsConnection)
+            
+            if st.button('Simpan Bookmark', type='primary', use_container_width=True):
+                
+                # 1. READ (Ambil dari Cache dulu biar cepet)
                 try:
-                    data = conn.read(worksheet="bookmarks", ttl=0)
+                    data = get_cached_bookmarks()
                     df = pd.DataFrame(data)
+                    # FIX: Buang baris kosong biar gak numpuk di bawah
+                    df = df.dropna(how='all')
                 except:
                     df = pd.DataFrame(columns=['book', 'chapter', 'verse', 'content', 'username'])
                 
+                # Jaga-jaga kalau df kosong/rusak
                 if df.empty:
                     df = pd.DataFrame(columns=['book', 'chapter', 'verse', 'content', 'username'])
 
+                # 2. BATCHING (Kumpulin data di list dulu)
                 new_entries = []
                 for verse in pilih:
                     content = getPassage(book, chapter, verse)
                     if isinstance(content, list): content = " ".join(content)
                     
+                    # FIX: Paksa jadi string semua biar aman di GSheets
                     new_entries.append({
-                        'book': book, 'chapter': chapter, 'verse': verse,
-                        'content': content, 'username': st.session_state['username']
+                        'book': str(book), 
+                        'chapter': str(chapter), 
+                        'verse': str(verse),
+                        'content': str(content), 
+                        'username': str(st.session_state['username'])
                     })
                 
+                # 3. WRITE & CLEAR CACHE (Update sekali jalan)
                 if new_entries:
                     new_user = pd.DataFrame(new_entries)
                     updated_df = pd.concat([df, new_user], ignore_index=True)
+                    
                     try:
-                        conn.update(data=updated_df, worksheet="bookmarks")
+                        # Kita definisikan conn lagi cuma buat update 
+                        conn = st.connection("gsheets", type=GSheetsConnection)
+                        
+                        with st.status("Menyimpan ke database...", expanded=False) as s:
+                            conn.update(data=updated_df, worksheet="bookmarks")
+                        
+                        # --- [PENTING: HAPUS CACHE GLOBAL] ---
+                        # Pake st.cache_data.clear() biar efek ke file page_bookmark.py juga!
+                        st.cache_data.clear()
+                        
                         st.success(f"Berhasil bookmark {len(new_entries)} ayat.")
+                        
                     except Exception as e:
                         st.error(f"Error Sheets: {e}")
+                else:
+                    st.warning("Pilih ayat dulu sebelum simpan.")
 
     # ==========================
     # TAMPILAN HASIL AYAT
@@ -201,7 +231,8 @@ def page_read():
             if st.button("💾 Simpan Note"):
                 conn = st.connection("gsheets", type=GSheetsConnection)
                 try:
-                    data = conn.read(worksheet="saved", ttl=0) # Update sheet name
+                    # Note: Kalau mau cepet, ini juga bisa di-cache kayak bookmark
+                    data = conn.read(worksheet="saved", ttl=0) 
                     df_notes = pd.DataFrame(data)
                 except:
                     df_notes = pd.DataFrame(columns=['title', 'content', 'username'])
@@ -217,7 +248,7 @@ def page_read():
                 
                 try:
                     updated_df = pd.concat([df_notes, new_note], ignore_index=True)
-                    conn.update(data=updated_df, worksheet="saved") # Update sheet name
+                    conn.update(data=updated_df, worksheet="saved") 
                     st.toast("Catatan disimpan!", icon="✅")
                 except Exception as e:
                     st.error(f"Gagal simpan ke sheet 'saved': {e}")
