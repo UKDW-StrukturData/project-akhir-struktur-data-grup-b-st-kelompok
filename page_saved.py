@@ -1,5 +1,46 @@
-import streamlit as st
+from funcs import st, pd, GSheetsConnection
 
 def page_saved():
     st.title("Saved Notes")
-    st.info("masih kosong")
+    st.write("Catatan studi dan riwayat chat Anda.")
+
+    conn = st.connection("gsheets", type=GSheetsConnection)
+
+    try:
+        data = conn.read(worksheet="saved", ttl=0) # Update sheet name
+        df = pd.DataFrame(data)
+    except Exception:
+        st.info("Belum ada catatan (Worksheet 'saved' tidak ditemukan).")
+        return
+
+    # Filter data user
+    if df.empty or 'username' not in df.columns:
+        st.info("Belum ada catatan.")
+        return
+
+    user_notes = df[df['username'] == st.session_state['username']]
+
+    if user_notes.empty:
+        st.info("Anda belum menyimpan catatan apapun.")
+    else:
+        # Tampilkan urut dari yang terbaru
+        for index, row in user_notes.iloc[::-1].iterrows():
+            with st.container(border=True):
+                col_head, col_del = st.columns([0.9, 0.1])
+                
+                with col_head:
+                    # Ambil 'title'
+                    judul = row.get('title', 'Tanpa Judul')
+                    st.subheader(f"{judul}")
+                
+                with col_del:
+                    if st.button("🗑️", key=f"del_note_{index}"):
+                        df_updated = df.drop(index)
+                        try:
+                            # HAPUS DARI 'saved'
+                            conn.update(data=df_updated, worksheet="saved")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Gagal hapus: {e}")
+
+                st.markdown(row.get('content', ''))

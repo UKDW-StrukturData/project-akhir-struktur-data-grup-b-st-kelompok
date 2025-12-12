@@ -1,9 +1,24 @@
-# funcs.py
 import streamlit as st
+import pandas as pd
 import requests
 import google.generativeai as genai
 from bs4 import BeautifulSoup
 from functools import lru_cache
+import datetime
+import time
+import hashlib
+import io
+import textwrap
+import matplotlib.pyplot as plt
+from streamlit_gsheets import GSheetsConnection
+
+# Optional Import untuk PDF
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+except ImportError:
+    canvas = None
+    letter = None
 
 # -----------------------
 # LIST KITAB & CHAPTERS
