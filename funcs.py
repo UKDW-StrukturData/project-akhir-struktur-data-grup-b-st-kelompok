@@ -12,13 +12,11 @@ import textwrap
 import matplotlib.pyplot as plt
 from streamlit_gsheets import GSheetsConnection
 
-# Optional Import untuk PDF
-try:
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
-except ImportError:
-    canvas = None
-    letter = None
+# --- PERUBAHAN DISINI ---
+# Jangan pakai try-except. Kita paksa import biar sistem tahu ini WAJIB.
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+# ------------------------
 
 # -----------------------
 # LIST KITAB & CHAPTERS
