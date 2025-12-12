@@ -164,17 +164,23 @@ def page_ai():
                 except Exception as e:
                     status_box.error(f"Gagal simpan: {e}")
 
+    # --- C. TOMBOL PDF (UPDATED) ---
     with c_pdf:
-        if st.session_state.chat and canvas:
-            pdf_bytes = create_pdf(st.session_state.chat)
-            if pdf_bytes:
-                st.download_button(
-                    label="Export PDF",
-                    data=pdf_bytes,
-                    file_name=f"chat_{datetime.datetime.now().strftime('%Y%m%d')}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
+        if st.session_state.chat:
+            if canvas: # Cek apakah library reportlab tersedia
+                pdf_bytes = create_pdf(st.session_state.chat)
+                if pdf_bytes:
+                    st.download_button(
+                        label="Export PDF",
+                        data=pdf_bytes,
+                        file_name=f"chat_{datetime.datetime.now().strftime('%Y%m%d')}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+            else:
+                # Jika canvas None (library hilang), kasih tombol mati + pesan error
+                st.button("Export PDF", disabled=True, use_container_width=True)
+                st.caption("Gagal: Library 'reportlab' belum terinstall.")
         else:
             st.button("Export PDF", disabled=True, use_container_width=True)
 
