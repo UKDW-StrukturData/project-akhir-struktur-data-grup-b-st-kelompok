@@ -192,7 +192,8 @@ def page_read():
         with col3:
              if st.button("Diskusi Lanjut (Chat)", use_container_width=True):
                 prompt_pindah = f"""
-                Kamu adalah asisten studi Alkitab.
+            Kamu adalah asisten studi Alkitab.
+            Jelaskan arti penting dari ayat tersebut dengan bahasa asli dan cross reference.
                 Ayat: {text_for_ai}
                 """
                 st.session_state["paket_prompt"] = prompt_pindah
@@ -209,7 +210,7 @@ def page_read():
         if ask_ai:
             prompt = f"""
             Kamu adalah asisten studi Alkitab.
-            Jelaskan arti penting bahasa asli dan cross reference.
+            Jelaskan arti penting dari ayat tersebut dengan bahasa asli dan cross reference.
             Ayat: {text_for_ai}
             """
             with st.spinner(f"AI sedang menganalisis {st.session_state['ref']}..."):
