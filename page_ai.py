@@ -2,6 +2,8 @@ from funcs import (
     st, pd, datetime, GSheetsConnection, io, textwrap, # Library
     ask_gemini, canvas, letter # Logic & Variable
 )
+from google.api_core.exceptions import ResourceExhausted, InvalidArgument, NotFound
+import time # <--- [DITAMBAHKAN BIAR BISA NUNGGU]
 
 # --- [BAGIAN 1: FUNGSI KHUSUS BIAR GAK MUNCUL IJO-IJO] ---
 # Taruh fungsi ini di LUAR page_ai()
@@ -120,7 +122,7 @@ def page_ai():
             st.session_state.chat = []
             st.rerun()
 
-    # --- B. TOMBOL SIMPAN ---
+    # --- B. TOMBOL SIMPAN (SUDAH DITAMBAH LOGIKA RETRY/ANTI-LIMIT) ---
     with c_save:
         if st.button("Simpan Chat", use_container_width=True, type="primary"):
             if not st.session_state.chat:
@@ -153,16 +155,36 @@ def page_ai():
                     # GABUNG
                     updated_df = pd.concat([df_notes, new_note], ignore_index=True)
                     
-                    # UPDATE KE GSHEET
+                    # --- UPDATE KE GSHEET DENGAN RETRY LOGIC (BIAR GAK ERROR 429) ---
                     conn = st.connection("gsheets", type=GSheetsConnection)
-                    conn.update(data=updated_df, worksheet="saved")
+                    
+                    max_retries = 5
+                    for i in range(max_retries):
+                        try:
+                            conn.update(data=updated_df, worksheet="saved")
+                            break # Sukses -> Keluar loop
+                        except Exception as e:
+                            # Cek Error Limit (429)
+                            if "429" in str(e) or "Quota exceeded" in str(e):
+                                wait_time = (i + 1) * 2 
+                                time.sleep(wait_time) # Tunggu 2s, 4s, 6s...
+                                
+                                # Info ke user biar gak panik
+                                if i > 0:
+                                    status_box.info(f"Antrian padat, mencoba lagi... ({i+1}/{max_retries})")
+                                continue
+                            else:
+                                raise e # Error lain lempar aja
                     
                     # BERHASIL
                     get_data_silent.clear() # Reset cache biar data baru kebaca nanti
                     status_box.success("Berhasil menyimpan chat!")
                     
                 except Exception as e:
-                    status_box.error(f"Gagal simpan: {e}")
+                    if "429" in str(e) or "Quota exceeded" in str(e):
+                         status_box.error("⚠️ Gagal Simpan: Server Google sibuk. Tunggu 1 menit lagi.", icon="⏳")
+                    else:
+                        status_box.error(f"Gagal simpan: {e}")
 
     # --- C. TOMBOL PDF (UPDATED) ---
     with c_pdf:
@@ -190,6 +212,7 @@ def page_ai():
         st.chat_message("user", avatar='user.png').write(userinput) 
         st.session_state.chat.append({"role":"user", "avatar":"user.png", "content":userinput}) 
         
+        # --- PROMPT ASLI KAMU (TIDAK DIUBAH) ---
         prompt_dgn_constraint = """Instruksi Utama:
 1. Jawablah pertanyaan HANYA jika berkaitan dengan: Alkitab, Teologi, Sejarah Gereja, Kehidupan Rohani.
 2. Tolak topik lain dengan sopan.
@@ -202,11 +225,40 @@ Riwayat percakapan:
             prompt_dgn_constraint += f"{role_label}: {message['content']}\n"
 
         prompt_dgn_constraint += f"User: {userinput}\nAssistant:"
-
+    
         with st.chat_message("assistant", avatar='logo.png'): 
             with st.spinner("Mengetik..."):
-                jawaban = ask_gemini(prompt_dgn_constraint) 
-                st.write(jawaban) 
                 
-        st.session_state.chat.append({"role":"assistant", "avatar":"logo.png", "content":jawaban})
-        st.rerun()
+                # --- MULAI TRY-EXCEPT DISINI ---
+                try:
+                    # 1. Panggil AI
+                    # Sekarang funcs.py akan melempar error jika gagal (bukan teks)
+                    jawaban = ask_gemini(prompt_dgn_constraint) 
+                    
+                    # 2. Jika Sukses (Tidak ada error)
+                    st.write(jawaban) 
+                    st.session_state.chat.append({"role":"assistant", "avatar":"logo.png", "content":jawaban})
+                    st.rerun()
+
+                # --- BAGIAN EXCEPT (MENANGKAP ERROR) ---
+
+                # Skenario A: Error API Key (Akses Terkunci)
+                # Menangkap InvalidArgument (Google) atau ValueError (Cek manual kita tadi)
+                except (InvalidArgument, ValueError) as e:
+                    st.error("Akses Terkunci")
+                    st.write("API Key AI salah!, Mohon Periksa Kembali API Key AI anda")
+                    
+                # Skenario B: Error Kuota Habis
+                except ResourceExhausted:
+                    st.warning("Antrian Penuh")
+                    st.write("Kuota penggunaan AI penuh, Mohon coba lagi nanti")
+
+                # Skenario C: Model Tidak Ditemukan (Misal salah nama model)
+                except NotFound:
+                    st.error("Model Tidak Ditemukan")
+                    st.write("Nama model AI di `funcs.py` tidak dikenali oleh Google.")
+
+                # Skenario D: Error Lainnya (Internet putus, dll)
+                except Exception as e:
+                    st.error("Gangguan Sistem")
+                    st.write("Terjadi kesalahan yang tidak terduga.")

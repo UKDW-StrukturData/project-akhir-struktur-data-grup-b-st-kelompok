@@ -12,6 +12,7 @@ import textwrap
 import matplotlib.pyplot as plt
 from streamlit_gsheets import GSheetsConnection
 
+
 # --- PERUBAHAN DISINI ---
 # Jangan pakai try-except. Kita paksa import biar sistem tahu ini WAJIB.
 from reportlab.lib.pagesizes import letter
@@ -173,33 +174,41 @@ def getVerseCount(book, chapter):
 # -----------------------
 # ASK GEMINI (AI)
 # -----------------------
+
 def ask_gemini(prompt):
-    api_key = None
+    
+    # Cek API Key
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
-        api_key = None
+        # Lempar error kalau key gak ada
+        raise ValueError("API Key belum diset di secrets.toml")
 
+    # Cek string kosong/default
     if not api_key or "MASUKKAN" in str(api_key):
-        return "Tolong masukkan API Key di secret GEMINI_API_KEY."
+        raise ValueError("API Key masih default/kosong")
 
     genai.configure(api_key=api_key)
 
-    models_to_try = [
-        "gemini-2.5-flash"
-    ]
+    # Gunakan model yang paling stabil
+    models_to_try = ["gemini-2.5-flash"]
 
-    error_log = []
+    last_error = None
+
     for model_name in models_to_try:
         try:
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
             return response.text
         except Exception as e:
-            error_log.append(f"{model_name}: {e}")
-            continue
-
-    return f"Maaf, semua model AI gagal diakses. Log: {', '.join(error_log)}"
+            last_error = e
+            continue # Coba model berikutnya kalau gagal
+    
+    # Kalau semua model gagal, LEMPAR error terakhirnya keluar
+    if last_error:
+        raise last_error
+    else:
+        raise Exception("Gagal menghubungi semua model AI.")
 
 # ============================
 #  GET NEIGHBOR (O(1), safe)
