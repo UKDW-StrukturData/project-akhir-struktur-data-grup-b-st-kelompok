@@ -168,60 +168,72 @@ def page_read():
                 else:
                     st.warning("Pilih ayat dulu sebelum simpan.")
 
-    # ==========================
-    # TAMPILAN HASIL AYAT
-    # ==========================
-    if st.session_state.get("show_result") and st.session_state.get("verses"):
-        st.subheader(f"{st.session_state.get('ref')}")
-        text_for_ai = "\n".join(st.session_state["verses"])
-
-        with st.container(height=600, border=True):
-            for v in st.session_state["verses"]:
-                st.write(v)
-
-        # Navigasi & AI
-        col1, col2, col3, col4 = st.columns(4)
-        can_nav = mode == "Pasal"
-
-        with col1:
-            st.button("Sebelumnya", use_container_width=True, on_click=navCallback, args=("prev",), disabled=not can_nav)
+    # Kita cek: apakah user minta tampilkan hasil?
+    if st.session_state.get("show_result"):
         
-        with col2:
-            ask_ai = st.button("Tanya AI (Disini)", use_container_width=True, type='primary')
+        # Cek apakah 'verses' kosong/None. Kalau kosong, berarti API gagal load data.
+        if not st.session_state.get("verses"):
+            st.error("Gagal memuat ayat. Mohon periksa koneksi internet Anda atau coba lagi nanti.")
             
-        with col3:
-             if st.button("Diskusi Lanjut (Chat)", use_container_width=True):
-                prompt_pindah = f"""
-            Kamu adalah asisten studi Alkitab.
-            Jelaskan arti penting dari ayat tersebut dengan bahasa asli dan cross reference.
+            # Kasih tombol "Coba Lagi" supaya user gak perlu reload seluruh halaman
+            if st.button("Coba Muat Ulang"):
+                st.cache_data.clear() # Hapus cache
+                st.session_state["cacheNode"] = initCache(st.session_state["book"], st.session_state["chapter"]) # Init ulang
+                curr = st.session_state["cacheNode"]
+                if curr:
+                    st.session_state["verses"] = curr.verses
+                    st.session_state["ref"] = curr.ref
+                    st.rerun()
+                
+        else:
+            st.subheader(f"{st.session_state.get('ref')}")
+            text_for_ai = "\n".join(st.session_state["verses"])
+
+            with st.container(height=600, border=True):
+                for v in st.session_state["verses"]:
+                    st.write(v)
+
+            # Navigasi & AI
+            col1, col2, col3, col4 = st.columns(4)
+            can_nav = mode == "Pasal"
+
+            with col1:
+                st.button("Sebelumnya", use_container_width=True, on_click=navCallback, args=("prev",), disabled=not can_nav)
+            
+            with col2:
+                ask_ai = st.button("Tanya AI (Disini)", use_container_width=True, type='primary')
+                
+            with col3:
+                 if st.button("Diskusi Lanjut (Chat)", use_container_width=True):
+                    prompt_pindah = f"""
+                Kamu adalah asisten studi Alkitab.
+                Jelaskan arti penting dari ayat tersebut dengan bahasa asli dan cross reference.
+                    Ayat: {text_for_ai}
+                    """
+                    st.session_state["paket_prompt"] = prompt_pindah
+                    st.session_state["paket_judul"] = f"Diskusi: {st.session_state['ref']}"
+                    st.session_state["pindah_dari_read"] = True
+                    st.switch_page(st.session_state["objek_halaman_ai"])
+                    
+            with col4:
+                st.button("Setelahnya", use_container_width=True, on_click=navCallback, args=("next",), disabled=not can_nav)
+
+            if ask_ai:
+                prompt = f"""
+                Kamu adalah asisten studi Alkitab.
+                Jelaskan arti penting dari ayat tersebut dengan bahasa asli dan cross reference.
                 Ayat: {text_for_ai}
                 """
-                st.session_state["paket_prompt"] = prompt_pindah
-                st.session_state["paket_judul"] = f"Diskusi: {st.session_state['ref']}"
-                st.session_state["pindah_dari_read"] = True
-                st.switch_page(st.session_state["objek_halaman_ai"])
-                
-        with col4:
-            st.button("Setelahnya", use_container_width=True, on_click=navCallback, args=("next",), disabled=not can_nav)
+                with st.spinner(f"AI sedang menganalisis {st.session_state['ref']}..."):
+                    try:
+                        hasil_ai = ask_gemini(prompt)
+                        st.session_state["ai_result"] = hasil_ai
+                        st.session_state["ai_ref"] = st.session_state["ref"]
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Maaf, AI sedang sibuk atau ada gangguan: {e}")
 
-        # ==========================
-        # ANALISIS AI
-        # ==========================
-        if ask_ai:
-            prompt = f"""
-            Kamu adalah asisten studi Alkitab.
-            Jelaskan arti penting dari ayat tersebut dengan bahasa asli dan cross reference.
-            Ayat: {text_for_ai}
-            """
-            with st.spinner(f"AI sedang menganalisis {st.session_state['ref']}..."):
-                hasil_ai = ask_gemini(prompt)
-                st.session_state["ai_result"] = hasil_ai
-                st.session_state["ai_ref"] = st.session_state["ref"]
-                st.rerun()
 
-    # ==========================
-    # HASIL AI & SAVE NOTE
-    # ==========================
     if st.session_state.get("ai_result") and st.session_state.get("ai_ref") == st.session_state.get("ref"):
         st.divider()
         st.subheader("Ringkasan & Makna (AI)")
@@ -232,7 +244,6 @@ def page_read():
             if st.button("Simpan Note"):
                 conn = st.connection("gsheets", type=GSheetsConnection)
                 try:
-                    # Note: Kalau mau cepet, ini juga bisa di-cache kayak bookmark
                     data = conn.read(worksheet="saved", ttl=0) 
                     df_notes = pd.DataFrame(data)
                 except:
