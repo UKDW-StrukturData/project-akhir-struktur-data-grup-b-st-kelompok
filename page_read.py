@@ -229,7 +229,7 @@ def page_read():
 
         c_save, c_hide = st.columns([1, 4])
         with c_save:
-            if st.button("💾 Simpan Note"):
+            if st.button("Simpan Note"):
                 conn = st.connection("gsheets", type=GSheetsConnection)
                 try:
                     # Note: Kalau mau cepet, ini juga bisa di-cache kayak bookmark
@@ -250,7 +250,7 @@ def page_read():
                 try:
                     updated_df = pd.concat([df_notes, new_note], ignore_index=True)
                     conn.update(data=updated_df, worksheet="saved") 
-                    st.toast("Catatan disimpan!", icon="✅")
+                    st.toast("Catatan disimpan!")
                 except Exception as e:
                     st.error(f"Gagal simpan ke sheet 'saved': {e}")
         

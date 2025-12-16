@@ -93,7 +93,7 @@ def page_saved():
                         except Exception as e:
                             # Tangkap sisa error (hanya jika sudah retry 5x gagal)
                             if "429" in str(e):
-                                st.error("⚠️ Sistem sedang sangat sibuk. Mohon tunggu 1 menit sebelum menghapus lagi.", icon="🚫")
+                                st.error("Sistem sedang sangat sibuk. Mohon tunggu 1 menit sebelum menghapus lagi.")
                             else:
                                 st.error(f"Gagal hapus: {e}")
                 

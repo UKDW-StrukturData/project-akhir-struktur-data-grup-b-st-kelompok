@@ -182,7 +182,7 @@ def page_ai():
                     
                 except Exception as e:
                     if "429" in str(e) or "Quota exceeded" in str(e):
-                         status_box.error("⚠️ Gagal Simpan: Server Google sibuk. Tunggu 1 menit lagi.", icon="⏳")
+                         status_box.error("Gagal Simpan: Server Google sibuk. Tunggu 1 menit lagi.")
                     else:
                         status_box.error(f"Gagal simpan: {e}")
 
